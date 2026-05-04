@@ -1,0 +1,38 @@
+# --- Secrets ---
+.env
+
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+*.egg-info/
+build/
+dist/
+
+# --- Virtualenv / lockfiles locales ---
+.venv/
+venv/
+.python-version
+uv.lock
+
+# --- Playwright ---
+playwright-report/
+test-results/
+
+# --- IDE ---
+.vscode/
+.idea/
+*.swp
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+
+# --- Eval / logs locales ---
+eval/results.json
+logs/
