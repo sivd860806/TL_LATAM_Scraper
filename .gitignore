@@ -36,3 +36,8 @@ Thumbs.db
 # --- Eval / logs locales ---
 eval/results.json
 logs/
+*.log
+
+# --- DOM dumps de debug (DUMP_FALABELLA_DOM=true) ---
+falabella_checkout_dom_*.html
+*_dom_dump.html
