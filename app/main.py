@@ -15,6 +15,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from . import __version__
+from .adapters.falabella import FalabellaAdapter
 from .adapters.mercadolibre import MercadoLibreAdapter
 from .config import is_llm_configured, settings
 from .dispatcher import SITE_FALABELLA, SITE_MERCADOLIBRE, resolve_site
@@ -140,15 +141,81 @@ async def scrape(payload: ScrapeRequest) -> ScrapeResponseSuccess:
         )
     logger.info("dispatcher.resolved", site_id=site_id)
 
+    # Acumulador de uso de tokens del LLM (agregado a traves de los agentes)
+    from .schemas.response import TokenUsage
+    total_tokens = TokenUsage(input=0, output=0)
+
     if site_id == SITE_MERCADOLIBRE:
         adapter = MercadoLibreAdapter()
         result = await adapter.fetch(url_str, country=payload.country)
     elif site_id == SITE_FALABELLA:
-        raise ScraperError(
-            code=ErrorCode.UNSUPPORTED_SITE,
-            message="Falabella adapter scaffolded; will be activated in P2.3 with Playwright.",
-            stage=Stage.ADAPTER,
-        )
+        adapter = FalabellaAdapter()
+        result = await adapter.fetch(url_str, country=payload.country)
+        # P2.4: si el adapter capturo DOM pero no tiene payment_methods,
+        # invocamos los dos agentes LLM:
+        #   1) PaymentExtractor extrae los metodos del DOM
+        #   2) ProductEnricher (solo si product esta incompleto) refina title/price
+        if result.mode == "browser":
+            from .agents.payment_extractor import extract_payment_methods
+            from .agents.product_enricher import enrich_product
+
+            try:
+                methods, usage_pm = await extract_payment_methods(
+                    result.initial_dom or "",
+                    url=url_str,
+                    site_id=result.site_id,
+                    country=payload.country,
+                )
+                result.payment_methods = methods
+                result.llm_calls_used += 1
+                total_tokens = TokenUsage(
+                    input=total_tokens.input + usage_pm.input,
+                    output=total_tokens.output + usage_pm.output,
+                )
+                logger.info(
+                    "agent.payment_extractor.done",
+                    n_methods=len(methods),
+                    tokens_in=usage_pm.input,
+                    tokens_out=usage_pm.output,
+                )
+            except ScraperError as e:
+                logger.warning("agent.payment_extractor.failed", code=e.code.value)
+                raise
+
+            # Solo invocamos enricher si el adapter no consiguio toda la info
+            need_enrich = not result.product or not result.product.title or not result.product.price
+            if need_enrich:
+                try:
+                    enriched, usage_pe = await enrich_product(
+                        result.initial_dom or "",
+                        url=url_str,
+                        current=result.product,
+                        country=payload.country,
+                    )
+                    if enriched:
+                        result.product = enriched
+                    if usage_pe.input > 0:
+                        result.llm_calls_used += 1
+                        total_tokens = TokenUsage(
+                            input=total_tokens.input + usage_pe.input,
+                            output=total_tokens.output + usage_pe.output,
+                        )
+                    logger.info("agent.product_enricher.done",
+                                tokens_in=usage_pe.input, tokens_out=usage_pe.output)
+                except Exception as e:
+                    # No falla el request si enricher falla — es best effort
+                    logger.warning("agent.product_enricher.failed", error=str(e))
+
+            if not result.payment_methods:
+                raise ScraperError(
+                    code=ErrorCode.PARSE_ERROR,
+                    message=(
+                        f"DOM capturado ({len(result.initial_dom or '')//1024} KB) "
+                        f"pero los agentes LLM no pudieron extraer payment_methods. "
+                        f"Posiblemente la pagina no muestra metodos de pago hasta el checkout."
+                    ),
+                    stage=Stage.EXTRACTOR,
+                )
     else:
         raise ScraperError(
             code=ErrorCode.INTERNAL_ERROR,
@@ -166,6 +233,7 @@ async def scrape(payload: ScrapeRequest) -> ScrapeResponseSuccess:
             duration_ms=duration_ms,
             agent_steps=2,
             llm_calls=result.llm_calls_used,
+            llm_tokens=total_tokens,
             payment_methods_source=result.payment_methods_source,
         ),
     )

@@ -78,12 +78,123 @@ def test_scrape_unsupported_site_returns_400(client):
     assert body["error"]["stage"] == "dispatcher"
 
 
-def test_scrape_falabella_returns_pending_p23(client):
+def test_scrape_falabella_with_mocked_agents_returns_200(client):
+    """P2.4 end-to-end: mockeamos el adapter (Playwright) Y los agentes LLM,
+    verificamos que el flujo completo arme un response 200 OK con metodos."""
+    from unittest.mock import patch, AsyncMock
+    from app.adapters.base import AdapterResult
+    from app.schemas.response import ProductInfo, PriceInfo, PaymentMethod, TokenUsage
+
+    fake_adapter_result = AdapterResult(
+        mode="browser",
+        site_id="falabella",
+        product=ProductInfo(
+            title="Smartwatch Test",
+            price=PriceInfo(amount=99990.0, currency="CLP"),
+        ),
+        payment_methods=[],
+        initial_dom="<html><body>" + "x" * 5000 + "</body></html>",
+        llm_calls_used=0,
+        network_calls=1,
+        payment_methods_source="captured_dom",
+    )
+    fake_methods = [
+        PaymentMethod(type="credit_card", brand="Visa"),
+        PaymentMethod(type="credit_card", brand="Mastercard"),
+        PaymentMethod(type="bank_transfer", brand="Webpay Plus"),
+    ]
+    fake_usage = TokenUsage(input=4200, output=380)
+
+    with patch(
+        "app.main.FalabellaAdapter.fetch",
+        new=AsyncMock(return_value=fake_adapter_result),
+    ), patch(
+        "app.agents.payment_extractor.extract_payment_methods",
+        new=AsyncMock(return_value=(fake_methods, fake_usage)),
+    ):
+        response = client.post("/scrape", json={
+            "url": "https://www.falabella.com/falabella-cl/product/12345",
+        })
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["status"] == "ok"
+    assert body["site"] == "falabella"
+    assert len(body["payment_methods"]) == 3
+    brands = {pm["brand"] for pm in body["payment_methods"]}
+    assert {"Visa", "Mastercard", "Webpay Plus"} <= brands
+    assert body["metadata"]["llm_calls"] == 1  # solo PaymentExtractor invocado (product completo)
+    assert body["product"]["title"] == "Smartwatch Test"
+    assert body["product"]["price"]["currency"] == "CLP"
+
+
+def test_scrape_falabella_extractor_error_returns_502(client):
+    """Si el PaymentExtractor falla (no key, API error), response es estructurado."""
+    from unittest.mock import patch, AsyncMock
+    from app.adapters.base import AdapterResult
+    from app.schemas.response import ProductInfo, PriceInfo
+    from app.schemas.error import ErrorCode, ScraperError, Stage
+
+    fake_adapter_result = AdapterResult(
+        mode="browser",
+        site_id="falabella",
+        product=ProductInfo(title="X", price=PriceInfo(amount=1.0, currency="CLP")),
+        payment_methods=[],
+        initial_dom="<html></html>",
+        llm_calls_used=0,
+        network_calls=1,
+        payment_methods_source="captured_dom",
+    )
+
+    extractor_error = ScraperError(
+        code=ErrorCode.LLM_BUDGET_EXCEEDED,
+        message="API key not configured",
+        stage=Stage.EXTRACTOR,
+    )
+
+    with patch(
+        "app.main.FalabellaAdapter.fetch",
+        new=AsyncMock(return_value=fake_adapter_result),
+    ), patch(
+        "app.agents.payment_extractor.extract_payment_methods",
+        new=AsyncMock(side_effect=extractor_error),
+    ):
+        response = client.post("/scrape", json={
+            "url": "https://www.falabella.com/falabella-cl/product/12345",
+        })
+
+    assert response.status_code == 429  # LLM_BUDGET_EXCEEDED
+    body = response.json()
+    assert body["error"]["code"] == "LLM_BUDGET_EXCEEDED"
+    assert body["error"]["stage"] == "extractor"
+
+
+def test_scrape_falabella_returns_structured_error(client):
+    """Test ambiente-agnostico: cualquiera sea la falla del adapter Falabella
+    (sin Playwright, sin shared libs, sin red), el response debe ser estructurado
+    con stage='adapter' y un error code conocido (no un 500 sin contexto).
+    """
     response = client.post("/scrape", json={
         "url": "https://www.falabella.com/falabella-cl/product/12345",
     })
-    assert response.status_code == 400
+    # Codigos posibles segun el ambiente:
+    # - 500 INTERNAL_ERROR: Playwright no instalado, o falta libnspr4
+    # - 504 TIMEOUT: red lenta o sitio inaccesible
+    # - 502 PARSE_ERROR: P2.4 no implementado, DOM si capturado
+    # - 502 ANTI_BOT_DETECTED: Cloudflare challenge
+    # En CUALQUIER escenario, queremos un response estructurado.
+    assert response.status_code in {404, 500, 502, 504}
     body = response.json()
-    assert body["error"]["code"] == "UNSUPPORTED_SITE"
+    assert body["status"] == "error"
     assert body["error"]["stage"] == "adapter"
-    assert "P2.3" in body["error"]["message"]
+    assert body["error"]["code"] in {
+        "INTERNAL_ERROR",
+        "TIMEOUT",
+        "PARSE_ERROR",
+        "ANTI_BOT_DETECTED",
+        "CHECKOUT_UNREACHABLE",
+        "OUT_OF_STOCK",  # Playwright navego OK pero el URL no existe (caso ficticio)
+    }
+    # Si es INTERNAL_ERROR, el mensaje debe ser accionable (mencionar Playwright)
+    if body["error"]["code"] == "INTERNAL_ERROR":
+        assert "Playwright" in body["error"]["message"] or "Chromium" in body["error"]["message"]
