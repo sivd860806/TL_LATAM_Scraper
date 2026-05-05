@@ -106,7 +106,7 @@ def test_scrape_falabella_with_mocked_agents_returns_200(client):
     fake_usage = TokenUsage(input=4200, output=380)
 
     with patch(
-        "app.main.FalabellaAdapter.fetch",
+        "app.adapters.falabella.FalabellaAdapter.fetch",
         new=AsyncMock(return_value=fake_adapter_result),
     ), patch(
         "app.agents.payment_extractor.extract_payment_methods",
@@ -153,7 +153,7 @@ def test_scrape_falabella_extractor_error_returns_502(client):
     )
 
     with patch(
-        "app.main.FalabellaAdapter.fetch",
+        "app.adapters.falabella.FalabellaAdapter.fetch",
         new=AsyncMock(return_value=fake_adapter_result),
     ), patch(
         "app.agents.payment_extractor.extract_payment_methods",
