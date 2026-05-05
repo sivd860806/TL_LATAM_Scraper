@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es-CO">
+<head>
+  <meta charset="UTF-8">
+  <title>Pago - Falabella.com.co</title>
+  <meta property="og:title" content="Pago - Falabella.com.co">
+</head>
+<body>
+  <header class="checkout-header">
+    <a href="/falabella-co/" class="logo">Falabella.com</a>
+    <nav class="checkout-steps">
+      <span class="step done">1. Carro</span>
+      <span class="step done">2. Entrega</span>
+      <span class="step active">3. Pago</span>
+    </nav>
+  </header>
+
+  <main class="checkout-payment">
+    <section class="address-summary">
+      <h2>Direccion</h2>
+      <p>Cra 7 # 92a-80, Chapinero, Bogota D.C.</p>
+    </section>
+
+    <section class="payment-options">
+      <h1>Selecciona tu medio de pago</h1>
+      <p class="hint">Pagos seguros con encriptacion SSL.</p>
+
+      <div class="payment-group">
+        <h2>Agregar tarjeta</h2>
+
+        <div class="payment-method" data-payment-id="cmr">
+          <img src="/static/cmr.svg" alt="Tarjeta CMR" class="brand-logo">
+          <div class="method-info">
+            <span class="brand-name">Tarjeta CMR</span>
+            <span class="installments-promo">Paga hasta en 36 cuotas | Hasta 12 cuotas sin interes con CMR</span>
+          </div>
+        </div>
+
+        <div class="payment-method" data-payment-id="credit-card">
+          <img src="/static/visa.svg" alt="Visa" class="brand-logo">
+          <img src="/static/mastercard.svg" alt="Mastercard" class="brand-logo">
+          <img src="/static/amex.svg" alt="American Express" class="brand-logo">
+          <img src="/static/diners.svg" alt="Diners Club" class="brand-logo">
+          <div class="method-info">
+            <span class="brand-name">Tarjeta de credito</span>
+            <span class="brands-accepted">Visa, Mastercard, American Express, Diners Club</span>
+            <span class="installments-promo">Hasta 24 cuotas con interes (segun banco emisor)</span>
+          </div>
+        </div>
+
+        <div class="payment-method" data-payment-id="debit-banco-falabella">
+          <img src="/static/banco-falabella.svg" alt="Debito Banco Falabella" class="brand-logo">
+          <div class="method-info">
+            <span class="brand-name">Debito Banco Falabella</span>
+            <span class="single-payment">Un solo pago</span>
+          </div>
+        </div>
+
+        <div class="payment-method" data-payment-id="debit-card">
+          <img src="/static/visa-debit.svg" alt="Visa Debito" class="brand-logo">
+          <img src="/static/maestro.svg" alt="Maestro" class="brand-logo">
+          <div class="method-info">
+            <span class="brand-name">Tarjeta de debito</span>
+            <span class="brands-accepted">Visa Debito, Maestro</span>
+            <span class="single-payment">Un solo pago</span>
+          </div>
+        </div>
+
+        <div class="payment-method disabled" data-payment-id="gift-card">
+          <img src="/static/gift-card.svg" alt="Gift Card" class="brand-logo">
+          <div class="method-info">
+            <span class="brand-name">Gift Card Falabella</span>
+            <span class="status-note">No disponible para esta orden</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="payment-group">
+        <h2>Otras opciones</h2>
+
+        <div class="payment-method" data-payment-id="pse">
+          <img src="/static/pse.svg" alt="PSE" class="brand-logo">
+          <div class="method-info">
+            <span class="brand-name">PSE - Pagos Seguros en Linea</span>
+            <span class="bank-note">Debito directo desde cuenta corriente o de ahorros</span>
+            <span class="single-payment">Un solo pago</span>
+          </div>
+        </div>
+
+        <div class="payment-method" data-payment-id="cash">
+          <img src="/static/efecty.svg" alt="Efecty" class="brand-logo">
+          <img src="/static/baloto.svg" alt="Baloto" class="brand-logo">
+          <div class="method-info">
+            <span class="brand-name">Pago en efectivo</span>
+            <span class="brands-accepted">Efecty, Baloto</span>
+            <span class="status-note">Codigo enviado por correo. 48hs para pagar.</span>
+          </div>
+        </div>
+      </div>
+
+      <aside class="order-summary">
+        <h3>Resumen de la orden</h3>
+        <ul>
+          <li>Productos (1): $3.499.900</li>
+          <li>Envio: $37.000</li>
+          <li class="total">Total: $3.536.900 COP</li>
+        </ul>
+      </aside>
+
+      <div class="terms">
+        <label><input type="checkbox"> Acepto los terminos y condiciones</label>
+        <button class="btn-pay" disabled>Continuar</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="checkout-footer">
+    <p>Compra protegida. Datos cifrados. Falabella.com Colombia</p>
+  </footer>
+</body>
+</html>

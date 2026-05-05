@@ -1,0 +1,98 @@
+# ============================================================================
+# Eval cases para scripts/eval.py
+#
+# Cada caso describe un request al endpoint POST /scrape y los aspectos del
+# response que esperamos. El eval pasa si TODAS las assertions del caso
+# matchean.
+#
+# Tipos de assertion soportadas:
+#   - status_code: int                       # 200, 400, 502, etc.
+#   - response_status: "ok" | "error"        # campo .status del JSON
+#   - site: str                              # campo .site
+#   - n_methods_min: int                     # len(payment_methods) >= N
+#   - n_methods_max: int                     # len(payment_methods) <= N
+#   - source: str | list[str]                # metadata.payment_methods_source
+#   - llm_calls_max: int                     # metadata.llm_calls <= N (control de costo)
+#   - duration_ms_max: int                   # metadata.duration_ms <= N (perf SLO)
+#   - brands_must_include: list[str]         # marcas canonicas que deben estar
+#   - brands_must_not_include: list[str]     # marcas que NO deben aparecer
+#   - product_title_contains: str            # substring esperado en product.title
+#   - product_currency: str                  # codigo ISO de currency
+#   - error_code: str                        # cuando es un error path
+#   - error_stage: str                       # stage del error (dispatcher/adapter/...)
+#   - max_total_time_s: float                # cap operacional del request entero
+# ============================================================================
+
+cases:
+  - id: ml_listing_iphone
+    description: Mercado Libre listing format -- happy path, 0 LLM calls, sub-second.
+    request:
+      url: "https://articulo.mercadolibre.com.ar/MLA-1135899085-apple-iphone-15-128-gb-rosa-_JM"
+    expect:
+      status_code: 200
+      response_status: ok
+      site: mercadolibre
+      n_methods_min: 10
+      source: site_catalog
+      llm_calls_max: 0
+      duration_ms_max: 1500
+      # ML AR catalog exposes Mercado Pago as "Dinero disponible en Mercado Pago"
+      # (wallet) and "Mercado Credito" (credit_card), not as "Mercado Pago"
+      # standalone. We assert the canonical brands that ARE present.
+      brands_must_include: [Visa, Mastercard, Rapipago]
+      max_total_time_s: 5.0
+
+  - id: ml_catalog_iphone
+    description: Mercado Libre catalog format (/p/) -- title from URL slug fallback.
+    request:
+      url: "https://www.mercadolibre.com.ar/apple-iphone-15-128-gb-negro/p/MLA1027172677"
+    expect:
+      status_code: 200
+      response_status: ok
+      site: mercadolibre
+      n_methods_min: 10
+      source: site_catalog
+      llm_calls_max: 0
+      duration_ms_max: 1500
+      product_title_contains: "Apple Iphone"
+      max_total_time_s: 5.0
+
+  - id: linio_unsupported
+    description: Linio es out of scope -- debe rebotar 400 UNSUPPORTED_SITE estructurado.
+    request:
+      url: "https://www.linio.com.co/p/algun-producto-12345"
+    expect:
+      status_code: 400
+      response_status: error
+      error_code: UNSUPPORTED_SITE
+      error_stage: dispatcher
+      max_total_time_s: 2.0
+
+  - id: invalid_url
+    description: URL malformada -- debe rebotar 422 con stage=dispatcher.
+    request:
+      url: "not-a-url"
+    expect:
+      status_code: 422
+      max_total_time_s: 2.0
+
+  # Falabella esta opcionalmente activo -- requiere Playwright + LLM key.
+  # Se skipea con --skip-falabella o si FALABELLA_EVAL=false.
+  - id: falabella_co_tv
+    description: Falabella CO PDP -- 1+ method extraido del DOM con LLM real.
+    requires:
+      - playwright
+      - llm
+    skip_if_env: SKIP_FALABELLA_EVAL
+    request:
+      url: "https://www.falabella.com.co/falabella-co/product/73499632/televisor-lg-75-pulgadas-4k-ultra-hd-qned-con-ia-magic-remote-75qned73asc/73499632"
+    expect:
+      status_code: 200
+      response_status: ok
+      site: falabella
+      n_methods_min: 1
+      source: [captured_dom, captured_checkout_dom]
+      llm_calls_max: 3
+      product_currency: COP
+      product_title_contains: LG
+      max_total_time_s: 180.0

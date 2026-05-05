@@ -136,8 +136,25 @@ curl http://localhost:8000/health
 
 ```bash
 pytest -q
-# 113 passed in ~5s
+# 117 passed in ~5s
 ```
+
+Three categories of tests live in `tests/`:
+
+- **Unit + smoke (default)** — 113+ tests covering schemas, dispatcher, ML
+  adapter (httpx MockTransport), Falabella adapter (Playwright mocked),
+  agents (Anthropic mocked), graph state machine (8 smoke tests), and
+  E2E `/scrape` endpoint with mocks.
+- **Offline LLM tests** (`tests/test_extractor_offline.py`) — call
+  `extract_payment_methods()` against real HTML fixtures saved to
+  `tests/fixtures/`. Run by default with mocked Anthropic; flip on real
+  Anthropic with `pytest -m live` (~$0.003 total cost, requires
+  `ANTHROPIC_API_KEY`).
+- **Live regression** (`@pytest.mark.live`) — deselected by default.
+  Calls Anthropic with the fixtures to validate that prompt + model
+  combination still extracts critical brands (CMR, PSE, Webpay) under
+  realistic DOMs. Use this after upgrading the model or refining the
+  prompt.
 
 ### 5. Docker
 
@@ -245,6 +262,61 @@ when possible.
 | `INTERNAL_ERROR` | 500 | Unexpected — bug in our code |
 
 `X-Correlation-ID` header is set on every response for traceability.
+
+---
+
+## Eval harness
+
+`scripts/eval.py` runs a defined set of cases against a live server and
+reports pass/fail with operational metrics (latency, llm_calls, n_methods).
+It's the single command a reviewer can run to validate the whole system
+end-to-end with one report.
+
+```bash
+# 1. Start the server in one terminal
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+# 2. In another terminal, run the eval
+python scripts/eval.py
+```
+
+What you get:
+```
+Eval harness -- target http://localhost:8000
+  Cases file: scripts/cases.yaml (5 cases)
+  /health OK
+
+Running cases:
+  PASS ml_listing_iphone (0.30s)
+        Mercado Libre listing format -- happy path, 0 LLM calls, sub-second.
+        HTTP 200  site=mercadolibre  n_methods=20  source=site_catalog  llm=0  server_ms=210
+  PASS ml_catalog_iphone (0.15s)
+        ...
+  PASS linio_unsupported (0.04s)
+        ...
+  - falabella_co_tv (--skip-falabella)
+
+Summary:
+  Total cases: 5  (4 ran, 1 skipped)
+  Passed:  4
+  Total time: 0.62s
+```
+
+Cases are defined declaratively in `scripts/cases.yaml`. Each case
+specifies a URL and a list of assertions (expected HTTP status, minimum
+methods, required brands, max latency, etc.). To add a new case, just
+append to the YAML — no code change.
+
+Common flags:
+- `python scripts/eval.py --skip-falabella` — skip Playwright cases (~80s
+  saved, useful for iteration)
+- `python scripts/eval.py --case ml_listing_iphone` — run a single case
+- `python scripts/eval.py --json reports/eval_results.json` — also dump
+  results as JSON (for CI integration)
+- Exit code: `0` all passed, `1` at least one failed, `2` config error
+
+This is the harness an evaluator (or CI) can use to validate the
+delivery without reading the code first.
 
 ---
 
