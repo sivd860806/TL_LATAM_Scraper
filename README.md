@@ -591,6 +591,5 @@ budget for a payment-methods data feed.
 
 ## Author
 
-Sergio Iván Villamizar Delgado — AI Manager @ Dichter & Neira / Director
-Engineering & MBA programs @ Universidad EAN. PhD in Electrical Engineering
+Sergio Iván Villamizar Delgado — AI Manager @ Dichter & Neira. PhD in Electrical Engineering
 (Data Analysis), Universidad Nacional de Colombia.
