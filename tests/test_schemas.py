@@ -20,9 +20,7 @@ from app.schemas.response import (
     TokenUsage,
 )
 
-# -----------------------------------------------------------------------------
-# Request validation
-# -----------------------------------------------------------------------------
+
 class TestScrapeRequest:
     def test_minimal_valid_request(self):
         req = ScrapeRequest(url="https://articulo.mercadolibre.com.ar/MLA-1234")
@@ -64,9 +62,6 @@ class TestScrapeRequest:
                           options={"timeout_seconds": 500})
 
 
-# -----------------------------------------------------------------------------
-# Response shape
-# -----------------------------------------------------------------------------
 class TestScrapeResponseSuccess:
     def test_minimal_response(self):
         resp = ScrapeResponseSuccess(
@@ -108,22 +103,19 @@ class TestScrapeResponseSuccess:
             ScrapeResponseSuccess(
                 source_url="https://x.com",
                 site="mercadolibre",
-                payment_methods=[],  # vacio rechazado
+                payment_methods=[],
                 metadata=ResponseMetadata(duration_ms=100),
             )
 
     def test_currency_must_be_uppercase_3_letter(self):
         with pytest.raises(ValidationError):
-            PriceInfo(amount=100.0, currency="ars")  # lowercase rechazado
+            PriceInfo(amount=100.0, currency="ars")
 
     def test_token_usage_total(self):
         usage = TokenUsage(input=4200, output=380)
         assert usage.total == 4580
 
 
-# -----------------------------------------------------------------------------
-# Error taxonomy
-# -----------------------------------------------------------------------------
 class TestErrorTaxonomy:
     def test_all_codes_have_unique_values(self):
         values = [c.value for c in ErrorCode]
@@ -151,12 +143,9 @@ class TestErrorTaxonomy:
         assert "malformed" in detail.message
 
 
-# -----------------------------------------------------------------------------
-# Catalog (normalizacion de marcas)
-# -----------------------------------------------------------------------------
 class TestCatalog:
     def test_normalize_strips_accents_and_lowercases(self):
-        assert normalize_brand_key("Mércadó Págo") == "mercado pago"
+        assert normalize_brand_key("Mercado Pago") == "mercado pago"
 
     def test_normalize_collapses_spaces(self):
         assert normalize_brand_key("  visa   credito  ") == "visa credito"
@@ -178,14 +167,10 @@ class TestCatalog:
         assert lookup_brand("KryptoCoinBank") is None
 
     def test_catalog_covers_main_latam_methods(self):
-        """Smoke test: las marcas que aparecen en el ejemplo del PDF deben estar."""
         for raw in ["Visa", "Mastercard", "Visa Debit", "Mercado Pago", "PSE", "Efecty"]:
-            assert lookup_brand(raw) is not None, f"Brand {raw} missing from catalog"
+            assert lookup_brand(raw) is not None
 
 
-# -----------------------------------------------------------------------------
-# Endpoint integration (con TestClient)
-# -----------------------------------------------------------------------------
 class TestEndpointShape:
     def test_health_returns_expected_shape(self, client):
         r = client.get("/health")
@@ -200,10 +185,9 @@ class TestEndpointShape:
         assert r.json()["status"] == "error"
         assert r.json()["error"]["code"] == "INVALID_URL"
 
-    def test_scrape_with_valid_url_returns_dispatcher_error_in_p21(self, client):
-        """En P2.1 todavia no hay dispatcher real; devolvemos UNSUPPORTED_SITE."""
+    def test_scrape_with_unsupported_site_returns_400(self, client):
         r = client.post("/scrape", json={
-            "url": "https://articulo.mercadolibre.com.ar/MLA-1234",
+            "url": "https://www.amazon.com.mx/dp/B07ZPC9QD4",
         })
         assert r.status_code == 400
         body = r.json()

@@ -1,0 +1,64 @@
+[
+  {
+    "id": "visa",
+    "name": "Visa",
+    "payment_type_id": "credit_card",
+    "status": "active",
+    "thumbnail": "https://...",
+    "secure_thumbnail": "https://..."
+  },
+  {
+    "id": "master",
+    "name": "Mastercard",
+    "payment_type_id": "credit_card",
+    "status": "active"
+  },
+  {
+    "id": "amex",
+    "name": "American Express",
+    "payment_type_id": "credit_card",
+    "status": "active"
+  },
+  {
+    "id": "naranja",
+    "name": "Tarjeta Naranja",
+    "payment_type_id": "credit_card",
+    "status": "active"
+  },
+  {
+    "id": "debvisa",
+    "name": "Visa Debit",
+    "payment_type_id": "debit_card",
+    "status": "active"
+  },
+  {
+    "id": "debmaster",
+    "name": "Mastercard Maestro",
+    "payment_type_id": "debit_card",
+    "status": "active"
+  },
+  {
+    "id": "account_money",
+    "name": "Dinero en cuenta de Mercado Pago",
+    "payment_type_id": "account_money",
+    "status": "active"
+  },
+  {
+    "id": "rapipago",
+    "name": "Rapipago",
+    "payment_type_id": "ticket",
+    "status": "active"
+  },
+  {
+    "id": "pagofacil",
+    "name": "Pago Facil",
+    "payment_type_id": "ticket",
+    "status": "active"
+  },
+  {
+    "id": "deprecated_method",
+    "name": "Metodo viejo deprecado",
+    "payment_type_id": "credit_card",
+    "status": "deprecated"
+  }
+]
