@@ -139,12 +139,31 @@ pytest -q
 # 113 passed in ~5s
 ```
 
-### 5. Docker (optional)
+### 5. Docker
 
 ```bash
+# Build (~3 min the first time, ~30s after)
 docker build -t tl-latam-scraper .
-docker run -p 8000:8000 --env-file .env tl-latam-scraper
+
+# Run with your local .env (must have ANTHROPIC_API_KEY set)
+docker run --rm -p 8000:8000 --env-file .env tl-latam-scraper
+
+# Smoke test (in another terminal)
+curl http://localhost:8000/health
+# {"status":"ok","version":"0.1.0","llm_configured":true,"model":"claude-haiku-4-5-20251001"}
 ```
+
+The image uses `mcr.microsoft.com/playwright/python:v1.49.0-jammy` as base,
+which ships Python 3.x + Chromium + all system shared libraries (libnspr4,
+libnss3, etc.) preinstalled. Final image is ~2GB — large but eliminates
+the most common deployment failure mode for Playwright-based services
+("works on my machine"). Runs as non-root user `app` (uid 1000) for
+security. Includes `HEALTHCHECK` against `/health` so orchestrators
+(Docker Swarm, Kubernetes, ECS) can detect a stuck process.
+
+For production: mount `.env` as a secret instead of `--env-file` (e.g.
+`docker run -e ANTHROPIC_API_KEY=... -e MODEL_NAME=...`), and put the
+container behind a reverse proxy that handles TLS.
 
 ---
 

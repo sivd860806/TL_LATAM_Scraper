@@ -41,3 +41,10 @@ logs/
 # --- DOM dumps de debug (DUMP_FALABELLA_DOM=true) ---
 falabella_checkout_dom_*.html
 *_dom_dump.html
+
+# --- Linters / tools descargados localmente ---
+hadolint-Linux-x86_64
+hadolint-*
+
+# --- Notas internas (no commitear) ---
+DEFENSE.md

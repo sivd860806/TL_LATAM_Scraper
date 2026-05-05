@@ -1,0 +1,65 @@
+# ============================================================================
+# .dockerignore -- mantiene el build context chico y evita filtrar secretos.
+# ============================================================================
+
+# --- Secrets (NUNCA en la imagen) -------------------------------------------
+.env
+.env.local
+*.pem
+*.key
+
+# --- Python caches ----------------------------------------------------------
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+*.egg-info/
+build/
+dist/
+
+# --- Virtualenvs ------------------------------------------------------------
+.venv/
+venv/
+.python-version
+uv.lock
+
+# --- Git --------------------------------------------------------------------
+.git/
+.github/
+.gitignore
+.gitattributes
+
+# --- Tests (NO van al runtime) ----------------------------------------------
+tests/
+
+# --- Notas internas (NO van al runtime) -------------------------------------
+DEFENSE.md
+PLAN_PARTE2.md
+docs/
+
+# --- Build artifacts del proyecto -------------------------------------------
+playwright-report/
+test-results/
+eval/results.json
+logs/
+*.log
+
+# --- DOM dumps de debug -----------------------------------------------------
+falabella_checkout_dom_*.html
+*_dom_dump.html
+
+# --- IDE / OS ---------------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# --- Docker mismo (recursivo) -----------------------------------------------
+Dockerfile
+.dockerignore
+docker-compose.yml
