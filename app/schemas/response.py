@@ -1,6 +1,6 @@
 """Schemas del response al endpoint POST /scrape (caso exitoso).
 
-Contrato basado en la seccion 3 del PDF — "Successful response (200)".
+Contrato basado en la seccion 3 del PDF -- "Successful response (200)".
 """
 from __future__ import annotations
 
@@ -51,7 +51,7 @@ class TokenUsage(BaseModel):
 
 
 class ResponseMetadata(BaseModel):
-    """Metricas operacionales del request — el evaluador las lee."""
+    """Metricas operacionales del request -- el evaluador las lee."""
     duration_ms: int = Field(..., ge=0)
     agent_steps: int = Field(default=0, ge=0)
     llm_calls: int = Field(default=0, ge=0,
@@ -63,7 +63,9 @@ class ResponseMetadata(BaseModel):
             "Granularidad de los payment_methods devueltos: "
             "'site_catalog' (catalogo del site, no filtrado por item), "
             "'item_specific' (filtrado por seller/item, mas preciso), "
-            "'captured_dom' (extraido del DOM del checkout via LLM)."
+            "'captured_dom' (extraido del DOM del PDP via LLM, preview pre-login), "
+            "'captured_checkout_dom' (extraido del DOM del checkout via LLM, "
+            "lista completa post add-to-cart)."
         ),
     )
 

@@ -3,7 +3,7 @@
 Cada adapter (Mercado Libre, Falabella, ...) implementa este Protocol.
 
 Hay dos categorias de adapter:
-  1. Direct (ML): el adapter resuelve completo el request — extrae producto y
+  1. Direct (ML): el adapter resuelve completo el request -- extrae producto y
      payment_methods sin necesidad de browser ni LLM (API publica).
   2. Browser-based (Falabella): el adapter solo navega a la pagina y devuelve
      DOM crudo. Los pasos posteriores (Navigator + Extractor) viven afuera del
@@ -33,7 +33,8 @@ class AdapterResult:
     # Granularidad del catalogo de payment_methods devuelto:
     # - "site_catalog": metodos disponibles en el SITE (e.g. todos los de MLA)
     # - "item_specific": filtrados por el seller/item (mas preciso)
-    # - "captured_dom": extraidos del DOM del checkout (Falabella+LLM)
+    # - "captured_dom": extraidos del DOM del PDP (Falabella+LLM, preview)
+    # - "captured_checkout_dom": extraidos tras navegar add-to-cart -> checkout
     payment_methods_source: str = "site_catalog"
 
 

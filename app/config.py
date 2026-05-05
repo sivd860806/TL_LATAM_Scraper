@@ -36,6 +36,12 @@ class Settings(BaseSettings):
     request_timeout_s: int = Field(default=60, ge=10, le=300)
     playwright_default_timeout_ms: int = Field(default=15_000, ge=1000)
 
+    # ---- Debug ----------------------------------------------------------
+    dump_falabella_dom: bool = Field(
+        default=False,
+        description="Si True, dumpear el DOM capturado del checkout a /tmp/ para inspeccion."
+    )
+
     # ---- Logging ---------------------------------------------------------
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     log_format: Literal["json", "console"] = "console"
